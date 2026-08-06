@@ -23,11 +23,13 @@ namespace PaymentSimplifier.Infrastructure
                 entity.Property(e => e.UserType).IsRequired();
             });
 
+            var id1 = Guid.CreateVersion7();
 
+            var id2 = Guid.NewGuid();
             modelBuilder.Entity<User>().HasData(
                 new User
                 {
-                    Id = Guid.NewGuid(),
+                    Id = Guid.Parse("019fd90d-e427-74cd-aaf7-a6464f779375"),
                     Name = "Lojista1",
                     Cpf = "12345678",
                     Email = "lojista@gmail.com",
@@ -40,7 +42,7 @@ namespace PaymentSimplifier.Infrastructure
             modelBuilder.Entity<User>().HasData(
                 new User
                 {
-                    Id = Guid.NewGuid(),
+                    Id = Guid.Parse("019fd90d-97c1-720c-812b-f502f65f600d"),
                     Name = "User1",
                     Cpf = "12345679",
                     Email = "user@gmail.com",
