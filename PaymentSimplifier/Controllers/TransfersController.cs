@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PaymentSimplifier.Application.Services;
+using PaymentSimplifier.Dtos;
 
 namespace PaymentSimplifier.Controllers
 {
@@ -7,26 +8,24 @@ namespace PaymentSimplifier.Controllers
     [Route("[controller]")]
     public class TransfersController : ControllerBase
     {
-        private readonly IUserService _userService;
-        public TransfersController(IUserService userService)
+        private readonly ITransferService _transferService;
+        public TransfersController(ITransferService transferService)
         {
-            _userService = userService;
+            _transferService = transferService;
         }
 
-        [HttpPatch("{userId}/deposit")]
-        public async Task<IActionResult> DepositAsync(Guid userId, [FromBody] decimal amount)
+        [HttpPost]
+        public async Task<IActionResult> TransferAsync([FromBody] TransferRequest request)
         {
             try
             {
-                var response = await _userService.DepositInUserAccountAsync(userId, amount);
+                var response = await _transferService.TransferAsync(request.PayerId, request.PayeeId, request.Value);
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                return BadRequest($"An error occurred: {ex.Message}");
+                return BadRequest($"An error occurred while transferring: {ex.Message}");
             }
-                
-            
         }
     }
 }

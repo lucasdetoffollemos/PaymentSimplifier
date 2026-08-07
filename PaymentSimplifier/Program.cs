@@ -14,6 +14,7 @@ namespace PaymentSimplifier
             // Add services to the container.
 
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<ITransferService, TransferService>();    
 
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres"))
