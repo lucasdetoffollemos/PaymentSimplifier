@@ -21,22 +21,22 @@ namespace PaymentSimplifier.Infrastructure
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Password).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.UserType).IsRequired();
+                entity.Property(e => e.Balance).HasColumnType("decimal(18,2)").HasDefaultValue(0);
             });
 
-            var id1 = Guid.CreateVersion7();
 
-            var id2 = Guid.NewGuid();
+
             modelBuilder.Entity<User>().HasData(
-                new User
-                {
-                    Id = Guid.Parse("019fd90d-e427-74cd-aaf7-a6464f779375"),
-                    Name = "Lojista1",
-                    Cpf = "12345678",
-                    Email = "lojista@gmail.com",
-                    Password = "lojista1",
-                    UserType = UserType.Merchant
-                }
-            );
+               new User
+               {
+                   Id = Guid.Parse("019fd90d-e427-74cd-aaf7-a6464f779375"),
+                   Name = "Lojista1",
+                   Cpf = "12345678",
+                   Email = "lojista@gmail.com",
+                   Password = "lojista1",
+                   UserType = UserType.Merchant
+               }
+           );
 
 
             modelBuilder.Entity<User>().HasData(
@@ -50,8 +50,6 @@ namespace PaymentSimplifier.Infrastructure
                     UserType = UserType.Commom
                 }
             );
-
-            
         }
     }
 }

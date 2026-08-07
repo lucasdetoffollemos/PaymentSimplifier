@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PaymentSimplifier.Infrastructure;
@@ -11,9 +12,11 @@ using PaymentSimplifier.Infrastructure;
 namespace PaymentSimplifier.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260807162919_add-balance-field")]
+    partial class addbalancefield
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -67,28 +70,6 @@ namespace PaymentSimplifier.Infrastructure.Migrations
                         .HasName("pk_users");
 
                     b.ToTable("users", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("019fd90d-e427-74cd-aaf7-a6464f779375"),
-                            Balance = 0m,
-                            Cpf = "12345678",
-                            Email = "lojista@gmail.com",
-                            Name = "Lojista1",
-                            Password = "lojista1",
-                            UserType = 2
-                        },
-                        new
-                        {
-                            Id = new Guid("019fd90d-97c1-720c-812b-f502f65f600d"),
-                            Balance = 0m,
-                            Cpf = "12345679",
-                            Email = "user@gmail.com",
-                            Name = "User1",
-                            Password = "user1",
-                            UserType = 1
-                        });
                 });
 #pragma warning restore 612, 618
         }

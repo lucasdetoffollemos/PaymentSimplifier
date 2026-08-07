@@ -4,3 +4,10 @@ GET {{PaymentSimplifier_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+@userId = 019fd90d-97c1-720c-812b-f502f65f600d
+PATCH {{PaymentSimplifier_HostAddress}}/transfers/{{userId}}/deposit
+Content-Type: application/json
+
+{
+    "amount": 100.00
+}

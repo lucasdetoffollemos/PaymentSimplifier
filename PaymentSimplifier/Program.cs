@@ -1,5 +1,6 @@
 
 using Microsoft.EntityFrameworkCore;
+using PaymentSimplifier.Application.Services;
 using PaymentSimplifier.Infrastructure;
 
 namespace PaymentSimplifier
@@ -11,6 +12,8 @@ namespace PaymentSimplifier
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
+
+            builder.Services.AddScoped<IUserService, UserService>();
 
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres"))
