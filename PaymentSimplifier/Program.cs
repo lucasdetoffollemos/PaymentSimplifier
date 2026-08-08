@@ -14,7 +14,8 @@ namespace PaymentSimplifier
             // Add services to the container.
 
             builder.Services.AddScoped<IUserService, UserService>();
-            builder.Services.AddScoped<ITransferService, TransferService>();    
+            builder.Services.AddScoped<ITransferService, TransferService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();    
 
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres"))
@@ -31,10 +32,6 @@ namespace PaymentSimplifier
             {
                 app.MapOpenApi();
             }
-
-
-
-
             app.UseHttpsRedirection();
 
             app.UseAuthorization();

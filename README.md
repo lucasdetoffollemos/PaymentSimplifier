@@ -5,13 +5,13 @@
 
 Adjust logic that notify payee, to notifcate only one time, if can not notifcate only log and warns user that cannot notify it ✅ 
 
-Create table transactions with, datetime utc, payer id, payeeid and value
+Create table transactions with, datetime utc, payer id, payeeid and value  ✅ 
 
-CREATE NOTIFCATION SERVICE
+CREATE NOTIFCATION SERVICE ✅ 
 
 ## Tomorrow 
 
-Refactor Httpclient to be IHTTPCLIENT FOR UNIT TESTS
+Refactor Httpclient to be IHTTPCLIENT  in services needed FOR UNIT TESTS
 
 Create unit tests for services
 

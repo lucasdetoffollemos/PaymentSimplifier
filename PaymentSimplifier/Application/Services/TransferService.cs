@@ -12,10 +12,13 @@ namespace PaymentSimplifier.Application.Services
         private readonly AppDbContext _appDbContext;
 
         private readonly ILogger<TransferService> _logger;
-        public TransferService(AppDbContext appDbContext, ILogger<TransferService> logger)
+
+        private readonly INotificationService _notificationService; 
+        public TransferService(AppDbContext appDbContext, ILogger<TransferService> logger, INotificationService notificationService)
         {
             _appDbContext = appDbContext;
             _logger = logger;
+            _notificationService = notificationService;
         }
 
         public async Task<(bool canTransfer, bool canNotify)> TransferAsync(Guid payerId, Guid payeeId, decimal value)
@@ -71,7 +74,7 @@ namespace PaymentSimplifier.Application.Services
 
             await _appDbContext.SaveChangesAsync();
 
-            if (!await SendNotificationToPayee(payeeId, value))
+            if (!await _notificationService.SendNotificationToPayeeAsync(payeeId, value))
             {
                 return (true, false);
             }
@@ -98,33 +101,6 @@ namespace PaymentSimplifier.Application.Services
             {
                 _logger.LogError($"Failed to create transaction from payer {payerId} to payee {payeeId} for amount {value}. Exception: {ex.Message}");
                 throw new InvalidOperationException("Failed to create transaction", ex);
-            }
-
-        }
-
-        //CREATE NOTIFICATION SERVICE
-        private async Task<bool> SendNotificationToPayee(Guid payeeId, decimal value)
-        {
-            try
-            {
-                var httpClient = new HttpClient();
-
-                var response = await httpClient.PostAsync("https://util.devi.tools/api/v1/notify", new StringContent(JsonSerializer.Serialize(new { message = $"Payment received successfully for amount {value}" }), Encoding.UTF8, "application/json"));
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogError($"Failed to send notification to payee {payeeId}. Status code: {response.StatusCode}");
-                    return false;
-                }
-
-                _logger.LogInformation($"Notification sent to payee {payeeId} for amount {value}");
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Exception occurred while sending notification to payee {payeeId}: {ex.Message}");
-                throw new InvalidOperationException("Failed to send notification to payee", ex);
             }
 
         }
