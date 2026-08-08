@@ -1,6 +1,7 @@
 ﻿using PaymentSimplifier.Domain.Users;
 using PaymentSimplifier.Dtos;
 using PaymentSimplifier.Infrastructure;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -17,6 +18,11 @@ namespace PaymentSimplifier.Application.Services
         public async Task<bool> TransferAsync(Guid payerId, Guid payeeId, decimal value)
         {
             //validate id payerid and payee id are not the same
+
+            if (payerId == payeeId)
+            {
+                throw new ArgumentException("Payer and payee cannot be the same user");
+            }
 
             //validate if payer and payee exist in the database
 
@@ -49,11 +55,34 @@ namespace PaymentSimplifier.Application.Services
 
             //before confim transaction, check this url https://util.devi.tools/api/v2/authorize, if the response is false, return false and do not proceed with the transaction
 
-            return await CheckAuthorizeTransaction();
+            if (!await CheckAuthorizeTransaction())
+            {
+                return false;
+            }
 
-            //https://util.devi.tools/api/v1/notify 
-            await Task.Delay(100); // Simulate some asynchronous operation
-            return true; // Assume the transfer was successful for this example
+            //proceed with the transaction
+
+            payer.Balance -= value;
+            payee.Balance += value;
+
+            await _appDbContext.SaveChangesAsync();
+
+            await SendNotificationToPayee(payeeId);
+
+            return true; 
+        }
+
+        private async Task SendNotificationToPayee(Guid payeeId)
+        {
+            var httpClient = new HttpClient();
+            HttpResponseMessage response;
+
+            do
+            {
+                response = await httpClient.PostAsync("https://util.devi.tools/api/v1/notify", new StringContent(JsonSerializer.Serialize(new { payeeId }), Encoding.UTF8, "application/json"));
+                await Task.Delay(500); // Wait for 500 milliseconds before retrying
+            }
+            while (!response.IsSuccessStatusCode);
         }
 
         private static async Task<bool> CheckAuthorizeTransaction()
@@ -68,7 +97,7 @@ namespace PaymentSimplifier.Application.Services
 
                 var resultParsed = JsonSerializer.Deserialize<AuthorizeResponse>(responseContent);
 
-                if(resultParsed == null || resultParsed.Data == null)
+                if (resultParsed == null || resultParsed.Data == null)
                     return false;
 
                 return resultParsed.Data.Authorization;
