@@ -69,8 +69,8 @@ namespace PaymentSimplifier.Application.Services
             //proceed with the transaction
             await CreateTransaction(payerId, payeeId, value);
 
-            payer.Balance -= value;
-            payee.Balance += value;
+            payer.DiscountBalance(value);
+            payee.AddBalance(value);
 
             await _appDbContext.SaveChangesAsync();
 

@@ -22,7 +22,7 @@ namespace PaymentSimplifier.Application.Services
             if(amount <= 0)
                 throw new ArgumentException("Invalid deposit amount");
 
-            user.Balance += amount;
+            user.AddBalance(amount);
 
             await _dbContext.SaveChangesAsync();
 

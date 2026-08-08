@@ -16,10 +16,21 @@ namespace PaymentSimplifier.Domain.Users
 
         public required UserType UserType { get; set; }
 
-        public decimal Balance { get; set; } = 0;
+        public decimal Balance { get; private set; } = 0;
 
         public ICollection<Transaction>? TransactionsForPayer { get; set; }
 
         public ICollection<Transaction>? TransactionsForPayee { get; set; }
+
+
+        public void DiscountBalance(decimal value)
+        {
+            Balance -= value;
+        }
+
+        public void AddBalance(decimal value)
+        {
+            Balance += value;
+        } 
     }
 }
