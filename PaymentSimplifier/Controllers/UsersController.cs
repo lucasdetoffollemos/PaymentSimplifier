@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PaymentSimplifier.Application.Services;
+using PaymentSimplifier.Dtos;
 
 namespace PaymentSimplifier.Controllers
 {
@@ -11,6 +12,20 @@ namespace PaymentSimplifier.Controllers
         public UsersController(IUserService userService)
         {
             _userService = userService;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateAsync([FromBody] CreateUserRequest request)
+        {
+            try
+            {
+                var response = await _userService.CreateUserAsync(request);
+                return Created($"/Users/{response.Id}", response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"An error occurred: {ex.Message}");
+            }
         }
 
         [HttpPatch("{userId}/deposit")]

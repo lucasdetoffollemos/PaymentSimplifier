@@ -36,7 +36,7 @@ namespace PaymentSimplifier.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError($"Exception occurred while sending notification to payee {payeeId}: {ex.Message}");
-                throw new InvalidOperationException("Failed to send notification to payee", ex);
+                return false;
             }
         }
     }

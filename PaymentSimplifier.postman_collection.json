@@ -1,0 +1,166 @@
+{
+  "info": {
+    "_postman_id": "3d6193bd-c44c-4a8a-98a5-4f6c8bbf1c11",
+    "name": "PaymentSimplifier",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Postman collection for all current PaymentSimplifier API endpoints."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5049"
+    },
+    {
+      "key": "commonUserId",
+      "value": "019fd90d-97c1-720c-812b-f502f65f600d"
+    },
+    {
+      "key": "merchantUserId",
+      "value": "019fd90d-e427-74cd-aaf7-a6464f779375"
+    }
+  ],
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create Common User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lucas Silva\",\n  \"document\": \"529.982.247-25\",\n  \"email\": \"lucas@email.com\",\n  \"password\": \"123456\",\n  \"userType\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Users"
+              ]
+            },
+            "description": "Creates a common user. Use userType 1 for common users."
+          }
+        },
+        {
+          "name": "Create Merchant User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Loja XPTO\",\n  \"document\": \"11.222.333/0001-81\",\n  \"email\": \"lojaxpto@email.com\",\n  \"password\": \"123456\",\n  \"userType\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Users"
+              ]
+            },
+            "description": "Creates a merchant user. Use userType 2 for merchants."
+          }
+        },
+        {
+          "name": "Deposit Into User Account",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "100.00"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Users/{{commonUserId}}/deposit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Users",
+                "{{commonUserId}}",
+                "deposit"
+              ]
+            },
+            "description": "Deposits money into a user account. This endpoint expects a raw decimal value in the request body."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transfers",
+      "item": [
+        {
+          "name": "Transfer Common To Merchant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payerId\": \"{{commonUserId}}\",\n  \"payeeId\": \"{{merchantUserId}}\",\n  \"value\": 25.50\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Transfers"
+              ]
+            },
+            "description": "Transfers money from a common user to a merchant."
+          }
+        },
+        {
+          "name": "Transfer Common To Common",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payerId\": \"{{commonUserId}}\",\n  \"payeeId\": \"00000000-0000-0000-0000-000000000000\",\n  \"value\": 10.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Transfers"
+              ]
+            },
+            "description": "Transfers money from one common user to another. Replace payeeId with a valid common user created in your environment."
+          }
+        }
+      ]
+    }
+  ]
+}

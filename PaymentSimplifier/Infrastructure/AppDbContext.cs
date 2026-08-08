@@ -22,11 +22,13 @@ namespace PaymentSimplifier.Infrastructure
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Cpf).IsRequired().HasMaxLength(11);
+                entity.Property(e => e.Document).IsRequired().HasMaxLength(14);
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Password).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.UserType).IsRequired();
                 entity.Property(e => e.Balance).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+                entity.HasIndex(e => e.Document).IsUnique();
+                entity.HasIndex(e => e.Email).IsUnique();
             });
 
             modelBuilder.Entity<Transaction>(entity =>
@@ -55,7 +57,7 @@ namespace PaymentSimplifier.Infrastructure
                {
                    Id = Guid.Parse("019fd90d-e427-74cd-aaf7-a6464f779375"),
                    Name = "Lojista1",
-                   Cpf = "12345678",
+                   Document = "11222333000181",
                    Email = "lojista@gmail.com",
                    Password = "lojista1",
                    UserType = UserType.Merchant
@@ -68,7 +70,7 @@ namespace PaymentSimplifier.Infrastructure
                 {
                     Id = Guid.Parse("019fd90d-97c1-720c-812b-f502f65f600d"),
                     Name = "User1",
-                    Cpf = "12345679",
+                    Document = "52998224725",
                     Email = "user@gmail.com",
                     Password = "user1",
                     UserType = UserType.Commom

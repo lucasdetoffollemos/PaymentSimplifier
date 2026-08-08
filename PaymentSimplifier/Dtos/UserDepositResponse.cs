@@ -6,7 +6,7 @@ namespace PaymentSimplifier.Dtos
     {
         public required string Name { get; set; }
 
-        public required string Cpf { get; set; }
+        public required string Document { get; set; }
 
         public required UserType UserType { get; set; }
 
