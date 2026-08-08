@@ -1,4 +1,6 @@
-﻿namespace PaymentSimplifier.Domain.Users
+﻿using PaymentSimplifier.Domain.Transactions;
+
+namespace PaymentSimplifier.Domain.Users
 {
     public class User
     {
@@ -16,5 +18,8 @@
 
         public decimal Balance { get; set; } = 0;
 
+        public ICollection<Transaction>? TransactionsForPayer { get; set; }
+
+        public ICollection<Transaction>? TransactionsForPayee { get; set; }
     }
 }

@@ -1,5 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using PaymentSimplifier.Domain.Transactions;
 using PaymentSimplifier.Domain.Users;
+using System.Reflection.Metadata;
+using System.Transactions;
+using Transaction = PaymentSimplifier.Domain.Transactions.Transaction;
 
 namespace PaymentSimplifier.Infrastructure
 {
@@ -10,6 +14,7 @@ namespace PaymentSimplifier.Infrastructure
         }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<Transaction> Transactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -24,7 +29,26 @@ namespace PaymentSimplifier.Infrastructure
                 entity.Property(e => e.Balance).HasColumnType("decimal(18,2)").HasDefaultValue(0);
             });
 
+            modelBuilder.Entity<Transaction>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.PayerId).IsRequired();
+                entity.Property(e => e.PayeeId).IsRequired();
+                entity.Property(e => e.Value).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
+            });
 
+
+            //doing FK´s payer and payee
+            modelBuilder.Entity<Transaction>()
+                .HasOne(e => e.Payer)
+                .WithMany(e => e.TransactionsForPayer)
+                .HasForeignKey(e => e.PayerId);
+
+            modelBuilder.Entity<Transaction>()
+                .HasOne(e => e.Payee)
+                .WithMany(e => e.TransactionsForPayee)
+                .HasForeignKey(e => e.PayeeId);
 
             modelBuilder.Entity<User>().HasData(
                new User

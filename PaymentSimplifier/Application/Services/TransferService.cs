@@ -1,21 +1,24 @@
-﻿using PaymentSimplifier.Domain.Users;
+﻿using PaymentSimplifier.Domain.Transactions;
+using PaymentSimplifier.Domain.Users;
 using PaymentSimplifier.Dtos;
 using PaymentSimplifier.Infrastructure;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace PaymentSimplifier.Application.Services
 {
     public class TransferService : ITransferService
     {
         private readonly AppDbContext _appDbContext;
-        public TransferService(AppDbContext appDbContext)
+
+        private readonly ILogger<TransferService> _logger;
+        public TransferService(AppDbContext appDbContext, ILogger<TransferService> logger)
         {
             _appDbContext = appDbContext;
+            _logger = logger;
         }
 
-        public async Task<bool> TransferAsync(Guid payerId, Guid payeeId, decimal value)
+        public async Task<(bool canTransfer, bool canNotify)> TransferAsync(Guid payerId, Guid payeeId, decimal value)
         {
             //validate id payerid and payee id are not the same
 
@@ -57,53 +60,96 @@ namespace PaymentSimplifier.Application.Services
 
             if (!await CheckAuthorizeTransaction())
             {
-                return false;
+                return (false, false);
             }
 
             //proceed with the transaction
+            await CreateTransaction(payerId, payeeId, value);
 
             payer.Balance -= value;
             payee.Balance += value;
 
             await _appDbContext.SaveChangesAsync();
 
-            await SendNotificationToPayee(payeeId);
+            if (!await SendNotificationToPayee(payeeId, value))
+            {
+                return (true, false);
+            }
 
-            return true; 
+            return (true, true);
         }
 
-        private async Task SendNotificationToPayee(Guid payeeId)
+        private async Task CreateTransaction(Guid payerId, Guid payeeId, decimal value)
         {
-            var httpClient = new HttpClient();
-            HttpResponseMessage response;
-
-            do
+            var transaction = new Transaction
             {
-                response = await httpClient.PostAsync("https://util.devi.tools/api/v1/notify", new StringContent(JsonSerializer.Serialize(new { payeeId }), Encoding.UTF8, "application/json"));
-                await Task.Delay(500); // Wait for 500 milliseconds before retrying
+                Id = Guid.NewGuid(),
+                PayerId = payerId,
+                PayeeId = payeeId,
+                Value = value,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            try
+            {
+                await _appDbContext.Transactions.AddAsync(transaction);
             }
-            while (!response.IsSuccessStatusCode);
+            catch(Exception ex)
+            {
+                _logger.LogError($"Failed to create transaction from payer {payerId} to payee {payeeId} for amount {value}. Exception: {ex.Message}");
+                throw new InvalidOperationException("Failed to create transaction", ex);
+            }
+
+        }
+
+        //CREATE NOTIFICATION SERVICE
+        private async Task<bool> SendNotificationToPayee(Guid payeeId, decimal value)
+        {
+            try
+            {
+                var httpClient = new HttpClient();
+
+                var response = await httpClient.PostAsync("https://util.devi.tools/api/v1/notify", new StringContent(JsonSerializer.Serialize(new { message = $"Payment received successfully for amount {value}" }), Encoding.UTF8, "application/json"));
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError($"Failed to send notification to payee {payeeId}. Status code: {response.StatusCode}");
+                    return false;
+                }
+
+                _logger.LogInformation($"Notification sent to payee {payeeId} for amount {value}");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Exception occurred while sending notification to payee {payeeId}: {ex.Message}");
+                throw new InvalidOperationException("Failed to send notification to payee", ex);
+            }
+
         }
 
         private static async Task<bool> CheckAuthorizeTransaction()
         {
-            var httpClient = new HttpClient();
-
-            var response = await httpClient.GetAsync("https://util.devi.tools/api/v2/authorize");
-
-            if (response.IsSuccessStatusCode)
+            try
             {
-                var responseContent = await response.Content.ReadAsStringAsync();
+                var httpClient = new HttpClient();
+                var response = await httpClient.GetAsync("https://util.devi.tools/api/v2/authorize");
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    var resultParsed = JsonSerializer.Deserialize<AuthorizeResponse>(responseContent);
+                    if (resultParsed == null || resultParsed.Data == null)
+                        return false;
+                    return resultParsed.Data.Authorization;
+                }
+                return false;
 
-                var resultParsed = JsonSerializer.Deserialize<AuthorizeResponse>(responseContent);
-
-                if (resultParsed == null || resultParsed.Data == null)
-                    return false;
-
-                return resultParsed.Data.Authorization;
             }
-
-            return false;
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Failed to check authorization for transaction", ex);
+            }
         }
     }
 }

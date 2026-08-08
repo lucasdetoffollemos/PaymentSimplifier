@@ -19,8 +19,20 @@ namespace PaymentSimplifier.Controllers
         {
             try
             {
-                var response = await _transferService.TransferAsync(request.PayerId, request.PayeeId, request.Value);
-                return Ok(response);
+                var (canTransfer, canNotify) = await _transferService.TransferAsync(request.PayerId, request.PayeeId, request.Value);
+
+
+                if(!canTransfer)
+                {
+                    return BadRequest("Transfer cannot be completed because authorization not granted.");
+                }   
+
+                if(!canNotify)
+                {
+                    return Ok("Transfer completed but notification could not be sent.");
+                }
+
+                return Ok("Transfer completed and notification sent successfully.");
             }
             catch (Exception ex)
             {
