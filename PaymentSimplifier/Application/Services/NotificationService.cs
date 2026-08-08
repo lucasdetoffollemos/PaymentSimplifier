@@ -7,16 +7,19 @@ namespace PaymentSimplifier.Application.Services
     {
         private readonly ILogger<NotificationService> _logger;
 
-        public NotificationService(ILogger<NotificationService> logger)
+        private readonly IHttpClientFactory _httpClientFactory;
+
+        public NotificationService(ILogger<NotificationService> logger, IHttpClientFactory httpClientFactory)
         {
             _logger = logger;
+            _httpClientFactory = httpClientFactory;
         }
 
         public async Task<bool> SendNotificationToPayeeAsync(Guid payeeId, decimal value)
         {
             try
             {
-                var httpClient = new HttpClient();
+                var httpClient = _httpClientFactory.CreateClient();
 
                 var response = await httpClient.PostAsync("https://util.devi.tools/api/v1/notify", new StringContent(JsonSerializer.Serialize(new { message = $"Payment received successfully for amount {value}" }), Encoding.UTF8, "application/json"));
 

@@ -12,7 +12,7 @@ namespace PaymentSimplifier
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
+            builder.Services.AddHttpClient();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ITransferService, TransferService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();    

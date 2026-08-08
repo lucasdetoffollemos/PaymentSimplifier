@@ -2,6 +2,7 @@
 using PaymentSimplifier.Domain.Users;
 using PaymentSimplifier.Dtos;
 using PaymentSimplifier.Infrastructure;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 
@@ -13,12 +14,15 @@ namespace PaymentSimplifier.Application.Services
 
         private readonly ILogger<TransferService> _logger;
 
-        private readonly INotificationService _notificationService; 
-        public TransferService(AppDbContext appDbContext, ILogger<TransferService> logger, INotificationService notificationService)
+        private readonly INotificationService _notificationService;
+
+        private readonly IHttpClientFactory _httpClientFactory;
+        public TransferService(AppDbContext appDbContext, ILogger<TransferService> logger, INotificationService notificationService, IHttpClientFactory httpClientFactory)
         {
             _appDbContext = appDbContext;
             _logger = logger;
             _notificationService = notificationService;
+            _httpClientFactory = httpClientFactory;
         }
 
         public async Task<(bool canTransfer, bool canNotify)> TransferAsync(Guid payerId, Guid payeeId, decimal value)
@@ -105,11 +109,11 @@ namespace PaymentSimplifier.Application.Services
 
         }
 
-        private static async Task<bool> CheckAuthorizeTransaction()
+        private async Task<bool> CheckAuthorizeTransaction()
         {
             try
             {
-                var httpClient = new HttpClient();
+                var httpClient = _httpClientFactory.CreateClient();
                 var response = await httpClient.GetAsync("https://util.devi.tools/api/v2/authorize");
                 if (response.IsSuccessStatusCode)
                 {

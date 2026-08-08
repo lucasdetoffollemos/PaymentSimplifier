@@ -10,12 +10,12 @@ Create table transactions with, datetime utc, payer id, payeeid and value  ✅
 CREATE NOTIFCATION SERVICE ✅ 
 
 ## Tomorrow 
-
-Refactor Httpclient to be IHTTPCLIENT  in services needed FOR UNIT TESTS
+Refactor Httpclient to be IHTTPCLIENT  in services needed FOR UNIT TESTS ✅ 
 
 Create unit tests for services
 
 Create docker file and docker compose and run code
 
+Generate Postman
 
 
