@@ -15,6 +15,9 @@ Refactor Httpclient to be IHTTPCLIENT  in services needed FOR UNIT TESTS ✅
 Verify with AI if this code is passing in its validations ✅
 
 Create unit tests for services 
+    - create for userservice ✅
+    - create for transferservice
+    - create for notificationserive 
 
 Create docker file and docker compose and run code
 
