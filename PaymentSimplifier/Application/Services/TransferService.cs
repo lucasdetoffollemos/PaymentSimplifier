@@ -27,6 +27,11 @@ namespace PaymentSimplifier.Application.Services
 
         public async Task<(bool canTransfer, bool canNotify)> TransferAsync(Guid payerId, Guid payeeId, decimal value)
         {
+            if (value <= 0)
+            {
+                throw new ArgumentException("Transfer value must be greater than zero");
+            }
+
             //validate id payerid and payee id are not the same
 
             if (payerId == payeeId)
