@@ -1,18 +1,18 @@
-﻿using PaymentSimplifier.Dtos;
+﻿using Microsoft.EntityFrameworkCore;
+using PaymentSimplifier.Dtos;
 using PaymentSimplifier.Domain.Users;
-using PaymentSimplifier.Infrastructure;
-using Microsoft.EntityFrameworkCore;
+using PaymentSimplifier.Infrastructure.Users;
 using System.Net.Mail;
 
 namespace PaymentSimplifier.Application.Services
 {
     public class UserService : IUserService
     {
-        private readonly AppDbContext _dbContext;
+        private readonly IUserRepository _userRepository;
 
-        public UserService(AppDbContext dbContext)
+        public UserService(IUserRepository userRepository)
         {
-            _dbContext = dbContext;
+            _userRepository = userRepository;
         }
 
         public async Task<CreateUserResponse> CreateUserAsync(CreateUserRequest request)
@@ -26,10 +26,10 @@ namespace PaymentSimplifier.Application.Services
 
             ValidateDocumentByUserType(normalizedDocument, request.UserType);
 
-            if (await _dbContext.Users.AnyAsync(user => user.Document == normalizedDocument))
+            if (await _userRepository.ExistsByDocumentAsync(normalizedDocument))
                 throw new InvalidOperationException("Document already registered");
 
-            if (await _dbContext.Users.AnyAsync(user => user.Email == normalizedEmail))
+            if (await _userRepository.ExistsByEmailAsync(normalizedEmail))
                 throw new InvalidOperationException("Email already registered");
 
             var user = new User
@@ -44,8 +44,8 @@ namespace PaymentSimplifier.Application.Services
 
             try
             {
-                await _dbContext.Users.AddAsync(user);
-                await _dbContext.SaveChangesAsync();
+                await _userRepository.AddAsync(user);
+                await _userRepository.SaveChangesAsync();
             }
             catch (DbUpdateException ex)
             {
@@ -65,7 +65,7 @@ namespace PaymentSimplifier.Application.Services
 
         public async Task<UserDepositResponse> DepositInUserAccountAsync(Guid userId, decimal amount)
         {
-            var user = await _dbContext.Users.FindAsync(userId);
+            var user = await _userRepository.GetByIdAsync(userId);
 
             if (user == null)
                 throw new ArgumentException("User not found");
@@ -75,7 +75,7 @@ namespace PaymentSimplifier.Application.Services
 
             user.AddBalance(amount);
 
-            await _dbContext.SaveChangesAsync();
+            await _userRepository.SaveChangesAsync();
 
             return new UserDepositResponse
             {
