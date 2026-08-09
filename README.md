@@ -18,6 +18,7 @@ Create unit tests for services
     - create for userservice ✅
     - create for transferservice
     - create for notificationserive 
+    - create for authorizetranferservice
 
 Create docker file and docker compose and run code
 

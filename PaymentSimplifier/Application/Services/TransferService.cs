@@ -1,28 +1,29 @@
 ﻿using PaymentSimplifier.Domain.Transactions;
 using PaymentSimplifier.Domain.Users;
-using PaymentSimplifier.Dtos;
-using PaymentSimplifier.Infrastructure;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Text.Json;
+using PaymentSimplifier.Infrastructure.Transactions;
+using PaymentSimplifier.Infrastructure.Users;
 
 namespace PaymentSimplifier.Application.Services
 {
     public class TransferService : ITransferService
     {
-        private readonly AppDbContext _appDbContext;
+        private readonly IUserRepository _userRepository;
+
+        private readonly ITransferRepository _transferRepository;
 
         private readonly ILogger<TransferService> _logger;
 
         private readonly INotificationService _notificationService;
 
-        private readonly IHttpClientFactory _httpClientFactory;
-        public TransferService(AppDbContext appDbContext, ILogger<TransferService> logger, INotificationService notificationService, IHttpClientFactory httpClientFactory)
+        private readonly ITransferAuthorizationService _transferAuthorizationService;
+
+        public TransferService(IUserRepository userRepository, ITransferRepository transferRepository, ILogger<TransferService> logger, INotificationService notificationService, ITransferAuthorizationService transferAuthorizationService)
         {
-            _appDbContext = appDbContext;
+            _userRepository = userRepository;
+            _transferRepository = transferRepository;
             _logger = logger;
             _notificationService = notificationService;
-            _httpClientFactory = httpClientFactory;
+            _transferAuthorizationService = transferAuthorizationService;
         }
 
         public async Task<(bool canTransfer, bool canNotify)> TransferAsync(Guid payerId, Guid payeeId, decimal value)
@@ -41,8 +42,8 @@ namespace PaymentSimplifier.Application.Services
 
             //validate if payer and payee exist in the database
 
-            var payer = await _appDbContext.Users.FindAsync(payerId);
-            var payee = await _appDbContext.Users.FindAsync(payeeId);
+            var payer = await _userRepository.GetByIdAsync(payerId);
+            var payee = await _userRepository.GetByIdAsync(payeeId);
 
             if (payer == null)
             {
@@ -70,7 +71,7 @@ namespace PaymentSimplifier.Application.Services
 
             //before confim transaction, check this url https://util.devi.tools/api/v2/authorize, if the response is false, return false and do not proceed with the transaction
 
-            if (!await CheckAuthorizeTransaction())
+            if (!await _transferAuthorizationService.IsTransferAuthorizedAsync())
             {
                 return (false, false);
             }
@@ -81,7 +82,7 @@ namespace PaymentSimplifier.Application.Services
             payer.DiscountBalance(value);
             payee.AddBalance(value);
 
-            await _appDbContext.SaveChangesAsync();
+            await _transferRepository.SaveChangesAsync();
 
             if (!await _notificationService.SendNotificationToPayeeAsync(payeeId, value))
             {
@@ -104,7 +105,7 @@ namespace PaymentSimplifier.Application.Services
 
             try
             {
-                await _appDbContext.Transactions.AddAsync(transaction);
+                await _transferRepository.AddAsync(transaction);
             }
             catch(Exception ex)
             {
@@ -112,29 +113,6 @@ namespace PaymentSimplifier.Application.Services
                 throw new InvalidOperationException("Failed to create transaction", ex);
             }
 
-        }
-
-        private async Task<bool> CheckAuthorizeTransaction()
-        {
-            try
-            {
-                var httpClient = _httpClientFactory.CreateClient();
-                var response = await httpClient.GetAsync("https://util.devi.tools/api/v2/authorize");
-                if (response.IsSuccessStatusCode)
-                {
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    var resultParsed = JsonSerializer.Deserialize<AuthorizeResponse>(responseContent);
-                    if (resultParsed == null || resultParsed.Data == null)
-                        return false;
-                    return resultParsed.Data.Authorization;
-                }
-                return false;
-
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Failed to check authorization for transaction", ex);
-            }
         }
     }
 }

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using PaymentSimplifier.Application.Services;
 using PaymentSimplifier.Infrastructure;
+using PaymentSimplifier.Infrastructure.Transactions;
 using PaymentSimplifier.Infrastructure.Users;
 
 namespace PaymentSimplifier
@@ -15,8 +16,10 @@ namespace PaymentSimplifier
             // Add services to the container.
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<ITransferRepository, TransferRepository>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ITransferService, TransferService>();
+            builder.Services.AddScoped<ITransferAuthorizationService, TransferAuthorizationService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();    
 
             builder.Services.AddDbContext<AppDbContext>(options =>
