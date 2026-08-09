@@ -2,6 +2,10 @@
 
 PaymentSimplifier is a simple project that simulates a transaction environment between users. It exposes a small HTTP API to create users, add balance, and transfer money while applying a few business rules commonly found in payment systems.
 
+The application was built using the challenge description from the PicPay backend README as the base reference:
+
+- https://github.com/PicPay/picpay-desafio-backend
+
 ## Overview
 
 The application was built to model a simplified payment flow:
