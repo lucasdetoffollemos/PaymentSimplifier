@@ -2,8 +2,8 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using PaymentSimplifier.Application.Services;
+using PaymentSimplifier.Tests.Common;
 using System.Net;
-using System.Text;
 using Xunit;
 
 namespace PaymentSimplifier.Tests.Application.Services
@@ -13,7 +13,7 @@ namespace PaymentSimplifier.Tests.Application.Services
         [Fact]
         public async Task SendNotificationToPayeeAsync_ShouldReturnTrue_WhenRequestSucceeds()
         {
-            var handler = new CapturingHttpMessageHandler(new HttpResponseMessage(HttpStatusCode.OK));
+            var handler = new HttpClientTestHelper.CapturingHttpMessageHandler(new HttpResponseMessage(HttpStatusCode.OK));
             var service = CreateService(new HttpClient(handler));
             var payeeId = Guid.NewGuid();
 
@@ -30,7 +30,7 @@ namespace PaymentSimplifier.Tests.Application.Services
         [Fact]
         public async Task SendNotificationToPayeeAsync_ShouldReturnFalse_WhenStatusCodeIsNotSuccessful()
         {
-            var service = CreateService(new HttpClient(new StubHttpMessageHandler(new HttpResponseMessage(HttpStatusCode.BadRequest))));
+            var service = CreateService(new HttpClient(new HttpClientTestHelper.StubHttpMessageHandler(new HttpResponseMessage(HttpStatusCode.BadRequest))));
 
             var result = await service.SendNotificationToPayeeAsync(Guid.NewGuid(), 10m);
 
@@ -40,7 +40,7 @@ namespace PaymentSimplifier.Tests.Application.Services
         [Fact]
         public async Task SendNotificationToPayeeAsync_ShouldReturnFalse_WhenRequestThrowsException()
         {
-            var service = CreateService(new HttpClient(new ThrowingHttpMessageHandler()));
+            var service = CreateService(new HttpClient(new HttpClientTestHelper.ThrowingHttpMessageHandler()));
 
             var result = await service.SendNotificationToPayeeAsync(Guid.NewGuid(), 10m);
 
@@ -51,63 +51,7 @@ namespace PaymentSimplifier.Tests.Application.Services
         {
             var logger = new Mock<ILogger<NotificationService>>();
 
-            return new NotificationService(logger.Object, new StubHttpClientFactory(httpClient));
-        }
-
-        private sealed class CapturingHttpMessageHandler : HttpMessageHandler
-        {
-            private readonly HttpResponseMessage _response;
-
-            public CapturingHttpMessageHandler(HttpResponseMessage response)
-            {
-                _response = response;
-            }
-
-            public HttpRequestMessage? Request { get; private set; }
-
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                Request = request;
-                return Task.FromResult(_response);
-            }
-        }
-
-        private sealed class StubHttpMessageHandler : HttpMessageHandler
-        {
-            private readonly HttpResponseMessage _response;
-
-            public StubHttpMessageHandler(HttpResponseMessage response)
-            {
-                _response = response;
-            }
-
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                return Task.FromResult(_response);
-            }
-        }
-
-        private sealed class ThrowingHttpMessageHandler : HttpMessageHandler
-        {
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                throw new HttpRequestException("network error");
-            }
-        }
-
-        private sealed class StubHttpClientFactory : IHttpClientFactory
-        {
-            private readonly HttpClient _httpClient;
-
-            public StubHttpClientFactory(HttpClient httpClient)
-            {
-                _httpClient = httpClient;
-            }
-
-            public HttpClient CreateClient(string name)
-            {
-                return _httpClient;
-            }
+            return new NotificationService(logger.Object, new HttpClientTestHelper.StubHttpClientFactory(httpClient));
         }
     }
 }
