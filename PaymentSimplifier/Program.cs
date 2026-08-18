@@ -9,6 +9,8 @@ namespace PaymentSimplifier
 {
     public class Program
     {
+        private const string VueDevelopmentCorsPolicy = "VueDevelopmentCorsPolicy";
+
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -27,6 +29,15 @@ namespace PaymentSimplifier
                 .UseSnakeCaseNamingConvention());
 
             builder.Services.AddControllers();
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(VueDevelopmentCorsPolicy, policy =>
+                {
+                    policy.WithOrigins("http://localhost:5173")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
@@ -43,6 +54,7 @@ namespace PaymentSimplifier
             {
                 app.MapOpenApi();
             }
+            app.UseCors(VueDevelopmentCorsPolicy);
 
             app.UseAuthorization();
 
