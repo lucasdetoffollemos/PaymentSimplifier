@@ -23,6 +23,7 @@ const userType = ref<UserType>(1)
 const isLoading = ref(false)
 const errorMessage = ref('')
 const createdUser = ref<CreatedUser | null>(null)
+let successToastTimeout: ReturnType<typeof setTimeout> | null = null
 
 function onlyNumbers(value: string) {
   return value.replace(/\D/g, '')
@@ -60,6 +61,10 @@ async function createUser() {
   errorMessage.value = ''
   createdUser.value = null
 
+  if (successToastTimeout) {
+    clearTimeout(successToastTimeout)
+  }
+
   const requestBody = {
     name: name.value,
     document: onlyNumbers(document.value),
@@ -83,6 +88,11 @@ async function createUser() {
     }
 
     createdUser.value = await response.json()
+    
+    successToastTimeout = setTimeout(() => {
+      createdUser.value = null
+      successToastTimeout = null
+    }, 5000)
 
     name.value = ''
     document.value = ''
@@ -102,9 +112,6 @@ async function createUser() {
     <section class="hero">
       <p class="eyebrow">Payment Simplifier</p>
       <h1>Create user</h1>
-      <p class="description">
-        Fill this form and Vue will send the data to your API using a POST request.
-      </p>
     </section>
 
     <section class="card">
@@ -121,7 +128,7 @@ async function createUser() {
             type="text"
             :maxlength="userType === 1 ? 14 : 18"
             :placeholder="
-              userType === 1 ? 'Example: 054.283.839-76' : 'Example: 12.345.678/0001-99'
+              userType === 1 ? 'Example: 154.223.345-65' : 'Example: 12.345.678/0001-99'
             "
             required
             @input="formatDocumentInput"
@@ -153,7 +160,7 @@ async function createUser() {
 
       <p v-if="errorMessage" class="message error">{{ errorMessage }}</p>
 
-      <div v-if="createdUser" class="message success">
+      <div v-if="createdUser" class="toast success" role="status" aria-live="polite">
         <strong>User created successfully!</strong>
         <span>ID: {{ createdUser.id }}</span>
         <span>Email: {{ createdUser.email }}</span>
@@ -311,6 +318,17 @@ button:disabled {
   gap: 4px;
   color: #13543f;
   background: #edfff8;
+}
+
+.toast {
+  display: grid;
+  gap: 4px;
+  margin: 20px 0 0;
+  border: 1px solid rgba(19, 84, 63, 0.14);
+  border-radius: 18px;
+  padding: 16px;
+  line-height: 1.5;
+  box-shadow: 0 18px 48px rgba(34, 62, 105, 0.18);
 }
 
 @media (max-width: 820px) {

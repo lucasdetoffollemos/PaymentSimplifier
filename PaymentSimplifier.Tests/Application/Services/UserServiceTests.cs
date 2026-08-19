@@ -96,7 +96,7 @@ namespace PaymentSimplifier.Tests.Application.Services
             var userRepository = new Mock<IUserRepository>();
             User? createdUser = null;
 
-            userRepository.Setup(repository => repository.ExistsByDocumentAsync("52998224725")).ReturnsAsync(false);
+            userRepository.Setup(repository => repository.ExistsByDocumentAsync("11111111111")).ReturnsAsync(false);
             userRepository.Setup(repository => repository.ExistsByEmailAsync("user@email.com")).ReturnsAsync(false);
             userRepository.Setup(repository => repository.AddAsync(It.IsAny<User>()))
                 .Callback<User>(user => createdUser = user)
@@ -104,12 +104,13 @@ namespace PaymentSimplifier.Tests.Application.Services
 
             var service = new UserService(userRepository.Object);
             var request = CreateRequest();
+            request.Document = "111.111.111-11";
 
             var response = await service.CreateUserAsync(request);
 
             createdUser.Should().NotBeNull();
             createdUser!.Name.Should().Be("User Name");
-            createdUser.Document.Should().Be("52998224725");
+            createdUser.Document.Should().Be("11111111111");
             createdUser.Email.Should().Be("user@email.com");
             createdUser.Password.Should().Be("password");
             createdUser.UserType.Should().Be(UserType.Commom);
@@ -119,7 +120,7 @@ namespace PaymentSimplifier.Tests.Application.Services
             {
                 Id = createdUser.Id,
                 Name = "User Name",
-                Document = "52998224725",
+                Document = "11111111111",
                 Email = "user@email.com",
                 UserType = UserType.Commom,
                 Balance = 0m
@@ -156,6 +157,48 @@ namespace PaymentSimplifier.Tests.Application.Services
 
             await act.Should().ThrowAsync<ArgumentException>().WithMessage("Invalid email");
             userRepository.Verify(repository => repository.AddAsync(It.IsAny<User>()), Times.Never);
+        }
+
+        [Theory]
+        [InlineData("1234567890", UserType.Commom, "Invalid CPF for common user")]
+        [InlineData("1234567890123", UserType.Merchant, "Invalid CNPJ for merchant user")]
+        public async Task CreateUserAsync_ShouldThrow_WhenDocumentLengthIsInvalid(string document, UserType userType, string expectedMessage)
+        {
+            var userRepository = new Mock<IUserRepository>();
+            var service = new UserService(userRepository.Object);
+            var request = CreateRequest();
+            request.Document = document;
+            request.UserType = userType;
+
+            Func<Task> act = async () => await service.CreateUserAsync(request);
+
+            await act.Should().ThrowAsync<ArgumentException>().WithMessage(expectedMessage);
+            userRepository.Verify(repository => repository.AddAsync(It.IsAny<User>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_ShouldCreateMerchant_WhenCnpjHasFourteenDigits()
+        {
+            var userRepository = new Mock<IUserRepository>();
+            User? createdUser = null;
+
+            userRepository.Setup(repository => repository.ExistsByDocumentAsync("11111111111111")).ReturnsAsync(false);
+            userRepository.Setup(repository => repository.ExistsByEmailAsync("user@email.com")).ReturnsAsync(false);
+            userRepository.Setup(repository => repository.AddAsync(It.IsAny<User>()))
+                .Callback<User>(user => createdUser = user)
+                .Returns(Task.CompletedTask);
+
+            var service = new UserService(userRepository.Object);
+            var request = CreateRequest();
+            request.Document = "11.111.111/1111-11";
+            request.UserType = UserType.Merchant;
+
+            await service.CreateUserAsync(request);
+
+            createdUser.Should().NotBeNull();
+            createdUser!.Document.Should().Be("11111111111111");
+            createdUser.UserType.Should().Be(UserType.Merchant);
+            userRepository.Verify(repository => repository.SaveChangesAsync(), Times.Once);
         }
 
         private static User CreateUser()

@@ -146,56 +146,12 @@ namespace PaymentSimplifier.Application.Services
 
         private static bool IsValidCpf(string cpf)
         {
-            if (cpf.Length != 11 || cpf.Distinct().Count() == 1)
-                return false;
-
-            var numbers = cpf.Select(c => c - '0').ToArray();
-
-            var firstDigit = CalculateCheckDigit(numbers, 9, 10);
-            var secondDigit = CalculateCheckDigit(numbers, 10, 11);
-
-            return numbers[9] == firstDigit && numbers[10] == secondDigit;
+            return cpf.Length == 11;
         }
 
         private static bool IsValidCnpj(string cnpj)
         {
-            if (cnpj.Length != 14 || cnpj.Distinct().Count() == 1)
-                return false;
-
-            var numbers = cnpj.Select(c => c - '0').ToArray();
-            var firstWeights = new[] { 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 };
-            var secondWeights = new[] { 6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 };
-
-            var firstDigit = CalculateWeightedCheckDigit(numbers, firstWeights);
-            var secondDigit = CalculateWeightedCheckDigit(numbers, secondWeights);
-
-            return numbers[12] == firstDigit && numbers[13] == secondDigit;
-        }
-
-        private static int CalculateCheckDigit(int[] numbers, int length, int weightStart)
-        {
-            var sum = 0;
-
-            for (var index = 0; index < length; index++)
-            {
-                sum += numbers[index] * (weightStart - index);
-            }
-
-            var remainder = sum % 11;
-            return remainder < 2 ? 0 : 11 - remainder;
-        }
-
-        private static int CalculateWeightedCheckDigit(int[] numbers, int[] weights)
-        {
-            var sum = 0;
-
-            for (var index = 0; index < weights.Length; index++)
-            {
-                sum += numbers[index] * weights[index];
-            }
-
-            var remainder = sum % 11;
-            return remainder < 2 ? 0 : 11 - remainder;
+            return cnpj.Length == 14;
         }
     }
 }
