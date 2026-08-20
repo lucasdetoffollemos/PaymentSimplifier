@@ -63,17 +63,35 @@ namespace PaymentSimplifier.Application.Services
             };
         }
 
-        public async Task<UserDepositResponse> DepositInUserAccountAsync(Guid userId, decimal amount)
+        public async Task<List<UserResponse>> GetUsersAsync()
+        {
+            var users = await _userRepository.GetAllAsync();
+
+            return users.Select(user => new UserResponse
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Document = user.Document,
+                Email = user.Email,
+                UserType = user.UserType,
+                Balance = user.Balance
+            }).ToList();
+        }
+
+        public async Task<UserDepositResponse> DepositInUserAccountAsync(Guid userId, DepositUserRequest request)
         {
             var user = await _userRepository.GetByIdAsync(userId);
 
             if (user == null)
                 throw new ArgumentException("User not found");
 
-            if(amount <= 0)
+            if (request.Amount <= 0)
                 throw new ArgumentException("Invalid deposit amount");
 
-            user.AddBalance(amount);
+            if (string.IsNullOrWhiteSpace(request.Password) || user.Password != request.Password.Trim())
+                throw new ArgumentException("Invalid password");
+
+            user.AddBalance(request.Amount);
 
             await _userRepository.SaveChangesAsync();
 

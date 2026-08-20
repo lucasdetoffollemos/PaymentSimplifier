@@ -6,6 +6,8 @@ namespace PaymentSimplifier.Infrastructure.Users
     {
         Task<User?> GetByIdAsync(Guid userId);
 
+        Task<List<User>> GetAllAsync();
+
         Task<bool> ExistsByDocumentAsync(string document);
 
         Task<bool> ExistsByEmailAsync(string email);

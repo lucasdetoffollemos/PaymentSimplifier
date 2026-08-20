@@ -17,6 +17,13 @@ namespace PaymentSimplifier.Infrastructure.Users
             return await _dbContext.Users.FindAsync(userId);
         }
 
+        public Task<List<User>> GetAllAsync()
+        {
+            return _dbContext.Users
+                .OrderBy(user => user.Name)
+                .ToListAsync();
+        }
+
         public Task<bool> ExistsByDocumentAsync(string document)
         {
             return _dbContext.Users.AnyAsync(user => user.Document == document);

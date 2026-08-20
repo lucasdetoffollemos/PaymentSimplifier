@@ -6,6 +6,8 @@ namespace PaymentSimplifier.Application.Services
     {
         Task<CreateUserResponse> CreateUserAsync(CreateUserRequest request);
 
-        Task<UserDepositResponse> DepositInUserAccountAsync(Guid userId, decimal amount);
+        Task<List<UserResponse>> GetUsersAsync();
+
+        Task<UserDepositResponse> DepositInUserAccountAsync(Guid userId, DepositUserRequest request);
     }
 }

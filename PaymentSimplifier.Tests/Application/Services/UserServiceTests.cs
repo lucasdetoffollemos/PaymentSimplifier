@@ -18,7 +18,7 @@ namespace PaymentSimplifier.Tests.Application.Services
             userRepository.Setup(repository => repository.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((User?)null);
             var service = new UserService(userRepository.Object);
 
-            Func<Task> act = async () => await service.DepositInUserAccountAsync(Guid.NewGuid(), 10m);
+            Func<Task> act = async () => await service.DepositInUserAccountAsync(Guid.NewGuid(), CreateDepositRequest());
 
             await act.Should().ThrowAsync<ArgumentException>().WithMessage("User not found");
             userRepository.Verify(repository => repository.SaveChangesAsync(), Times.Never);
@@ -32,7 +32,10 @@ namespace PaymentSimplifier.Tests.Application.Services
             userRepository.Setup(repository => repository.GetByIdAsync(user.Id)).ReturnsAsync(user);
             var service = new UserService(userRepository.Object);
 
-            Func<Task> act = async () => await service.DepositInUserAccountAsync(user.Id, 0m);
+            var request = CreateDepositRequest();
+            request.Amount = 0m;
+
+            Func<Task> act = async () => await service.DepositInUserAccountAsync(user.Id, request);
 
             await act.Should().ThrowAsync<ArgumentException>().WithMessage("Invalid deposit amount");
             user.Balance.Should().Be(0m);
@@ -47,7 +50,7 @@ namespace PaymentSimplifier.Tests.Application.Services
             userRepository.Setup(repository => repository.GetByIdAsync(user.Id)).ReturnsAsync(user);
             var service = new UserService(userRepository.Object);
 
-            var response = await service.DepositInUserAccountAsync(user.Id, 150m);
+            var response = await service.DepositInUserAccountAsync(user.Id, CreateDepositRequest());
 
             response.Should().BeEquivalentTo(new UserDepositResponse
             {
@@ -58,6 +61,47 @@ namespace PaymentSimplifier.Tests.Application.Services
             });
             user.Balance.Should().Be(150m);
             userRepository.Verify(repository => repository.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task DepositInUserAccountAsync_ShouldThrow_WhenPasswordIsInvalid()
+        {
+            var user = CreateUser();
+            var userRepository = new Mock<IUserRepository>();
+            userRepository.Setup(repository => repository.GetByIdAsync(user.Id)).ReturnsAsync(user);
+            var service = new UserService(userRepository.Object);
+            var request = CreateDepositRequest();
+            request.Password = "wrong-password";
+
+            Func<Task> act = async () => await service.DepositInUserAccountAsync(user.Id, request);
+
+            await act.Should().ThrowAsync<ArgumentException>().WithMessage("Invalid password");
+            user.Balance.Should().Be(0m);
+            userRepository.Verify(repository => repository.SaveChangesAsync(), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetUsersAsync_ShouldReturnUsersWithoutPasswords()
+        {
+            var users = new List<User> { CreateUser() };
+            var userRepository = new Mock<IUserRepository>();
+            userRepository.Setup(repository => repository.GetAllAsync()).ReturnsAsync(users);
+            var service = new UserService(userRepository.Object);
+
+            var response = await service.GetUsersAsync();
+
+            response.Should().BeEquivalentTo(new List<UserResponse>
+            {
+                new()
+                {
+                    Id = users[0].Id,
+                    Name = users[0].Name,
+                    Document = users[0].Document,
+                    Email = users[0].Email,
+                    UserType = users[0].UserType,
+                    Balance = users[0].Balance
+                }
+            });
         }
 
         [Fact]
@@ -223,6 +267,15 @@ namespace PaymentSimplifier.Tests.Application.Services
                 Email = " USER@EMAIL.COM ",
                 Password = " password ",
                 UserType = UserType.Commom
+            };
+        }
+
+        private static DepositUserRequest CreateDepositRequest()
+        {
+            return new DepositUserRequest
+            {
+                Amount = 150m,
+                Password = "password"
             };
         }
     }

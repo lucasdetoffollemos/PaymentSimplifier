@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 type UserType = 1 | 2
+type ActivePanel = 'create' | 'deposit'
 
-type CreatedUser = {
+type User = {
   id: string
   name: string
   document: string
@@ -12,7 +13,19 @@ type CreatedUser = {
   balance: number
 }
 
+type DepositResponse = {
+  name: string
+  document: string
+  userType: UserType
+  balance: number
+}
+
 const apiUrl = 'http://localhost:5049/Users'
+
+const activePanel = ref<ActivePanel>('create')
+const users = ref<User[]>([])
+const usersLoading = ref(false)
+const usersErrorMessage = ref('')
 
 const name = ref('')
 const document = ref('')
@@ -22,8 +35,20 @@ const userType = ref<UserType>(1)
 
 const isLoading = ref(false)
 const errorMessage = ref('')
-const createdUser = ref<CreatedUser | null>(null)
+const createdUser = ref<User | null>(null)
 let successToastTimeout: ReturnType<typeof setTimeout> | null = null
+
+const selectedUserId = ref('')
+const depositAmount = ref('')
+const depositPassword = ref('')
+const isDepositing = ref(false)
+const depositErrorMessage = ref('')
+const depositResult = ref<DepositResponse | null>(null)
+let depositToastTimeout: ReturnType<typeof setTimeout> | null = null
+
+const selectedUser = computed(
+  () => users.value.find((user) => user.id === selectedUserId.value) ?? null,
+)
 
 function onlyNumbers(value: string) {
   return value.replace(/\D/g, '')
@@ -48,12 +73,49 @@ function formatCnpj(value: string) {
     .replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, '$1.$2.$3/$4-$5')
 }
 
-function formatDocument(value: string) {
-  return userType.value === 1 ? formatCpf(value) : formatCnpj(value)
+function formatDocument(value: string, type: UserType = userType.value) {
+  return type === 1 ? formatCpf(value) : formatCnpj(value)
 }
 
 function formatDocumentInput() {
   document.value = formatDocument(document.value)
+}
+
+function formatMoney(value: number) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(value)
+}
+
+function getUserTypeLabel(type: UserType) {
+  return type === 1 ? 'Common' : 'Merchant'
+}
+
+async function fetchUsers() {
+  usersLoading.value = true
+  usersErrorMessage.value = ''
+
+  try {
+    const response = await fetch(apiUrl)
+
+    if (!response.ok) {
+      const apiError = await response.text()
+      throw new Error(apiError || 'Could not load users.')
+    }
+
+    users.value = await response.json()
+
+    const firstUser = users.value[0]
+
+    if (!selectedUserId.value && firstUser) {
+      selectedUserId.value = firstUser.id
+    }
+  } catch (error) {
+    usersErrorMessage.value = error instanceof Error ? error.message : 'Unexpected error.'
+  } finally {
+    usersLoading.value = false
+  }
 }
 
 async function createUser() {
@@ -88,7 +150,8 @@ async function createUser() {
     }
 
     createdUser.value = await response.json()
-    
+    await fetchUsers()
+
     successToastTimeout = setTimeout(() => {
       createdUser.value = null
       successToastTimeout = null
@@ -105,16 +168,93 @@ async function createUser() {
     isLoading.value = false
   }
 }
+
+async function depositMoney() {
+  isDepositing.value = true
+  depositErrorMessage.value = ''
+  depositResult.value = null
+
+  if (depositToastTimeout) {
+    clearTimeout(depositToastTimeout)
+  }
+
+  const amount = Number(depositAmount.value)
+
+  try {
+    if (!selectedUserId.value) {
+      throw new Error('Choose a user.')
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Enter a valid deposit amount.')
+    }
+
+    const response = await fetch(`${apiUrl}/${selectedUserId.value}/deposit`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount,
+        password: depositPassword.value,
+      }),
+    })
+
+    if (!response.ok) {
+      const apiError = await response.text()
+      throw new Error(apiError || 'Could not deposit money.')
+    }
+
+    depositResult.value = await response.json()
+
+    depositToastTimeout = setTimeout(() => {
+      depositResult.value = null
+      depositToastTimeout = null
+    }, 5000)
+
+    await fetchUsers()
+    depositAmount.value = ''
+    depositPassword.value = ''
+  } catch (error) {
+    depositErrorMessage.value = error instanceof Error ? error.message : 'Unexpected error.'
+  } finally {
+    isDepositing.value = false
+  }
+}
+
+onMounted(fetchUsers)
 </script>
 
 <template>
   <main class="page">
     <section class="hero">
       <p class="eyebrow">Payment Simplifier</p>
-      <h1>Create user</h1>
+      <h1>{{ activePanel === 'create' ? 'Create user' : 'Deposit money' }}</h1>
+      <p class="description">
+        Create accounts and deposit money only when the selected user's password is correct.
+      </p>
+
+      <div class="panel-switch" aria-label="Choose screen">
+        <button
+          type="button"
+          class="switch-button"
+          :class="{ active: activePanel === 'create' }"
+          @click="activePanel = 'create'"
+        >
+          Create user
+        </button>
+        <button
+          type="button"
+          class="switch-button"
+          :class="{ active: activePanel === 'deposit' }"
+          @click="activePanel = 'deposit'"
+        >
+          Deposit money
+        </button>
+      </div>
     </section>
 
-    <section class="card">
+    <section v-if="activePanel === 'create'" class="card">
       <form class="form" @submit.prevent="createUser">
         <label>
           Name
@@ -153,7 +293,7 @@ async function createUser() {
           </select>
         </label>
 
-        <button type="submit" :disabled="isLoading">
+        <button class="primary-button" type="submit" :disabled="isLoading">
           {{ isLoading ? 'Creating...' : 'Create user' }}
         </button>
       </form>
@@ -164,7 +304,64 @@ async function createUser() {
         <strong>User created successfully!</strong>
         <span>ID: {{ createdUser.id }}</span>
         <span>Email: {{ createdUser.email }}</span>
-        <span>Balance: {{ createdUser.balance }}</span>
+        <span>Balance: {{ formatMoney(createdUser.balance) }}</span>
+      </div>
+    </section>
+
+    <section v-else class="card deposit-card">
+      <form class="form" @submit.prevent="depositMoney">
+        <label>
+          User
+          <select v-model="selectedUserId" required :disabled="usersLoading || users.length === 0">
+            <option value="" disabled>
+              {{ usersLoading ? 'Loading users...' : 'Choose a user' }}
+            </option>
+            <option v-for="user in users" :key="user.id" :value="user.id">
+              {{ user.name }} - {{ user.email }}
+            </option>
+          </select>
+        </label>
+
+        <div v-if="selectedUser" class="user-summary">
+          <span>{{ getUserTypeLabel(selectedUser.userType) }}</span>
+          <strong>{{ formatMoney(selectedUser.balance) }}</strong>
+          <small>{{ formatDocument(selectedUser.document, selectedUser.userType) }}</small>
+        </div>
+
+        <label>
+          Amount
+          <input
+            v-model="depositAmount"
+            type="number"
+            min="0.01"
+            step="0.01"
+            placeholder="Example: 100.00"
+            required
+          />
+        </label>
+
+        <label>
+          User password
+          <input
+            v-model="depositPassword"
+            type="password"
+            placeholder="Password for selected user"
+            required
+          />
+        </label>
+
+        <button class="primary-button" type="submit" :disabled="isDepositing || users.length === 0">
+          {{ isDepositing ? 'Depositing...' : 'Deposit money' }}
+        </button>
+      </form>
+
+      <p v-if="usersErrorMessage" class="message error">{{ usersErrorMessage }}</p>
+      <p v-if="depositErrorMessage" class="message error">{{ depositErrorMessage }}</p>
+
+      <div v-if="depositResult" class="toast success" role="status" aria-live="polite">
+        <strong>Deposit completed!</strong>
+        <span>User: {{ depositResult.name }}</span>
+        <span>New balance: {{ formatMoney(depositResult.balance) }}</span>
       </div>
     </section>
   </main>
@@ -236,6 +433,31 @@ h1 {
   color: #526076;
 }
 
+.panel-switch {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 28px;
+  border: 1px solid rgba(23, 32, 51, 0.08);
+  border-radius: 999px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.switch-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 16px;
+  font-weight: 800;
+  color: #526076;
+  background: transparent;
+  cursor: pointer;
+}
+
+.switch-button.active {
+  color: #ffffff;
+  background: #172033;
+}
+
 .card {
   padding: 28px;
   border: 1px solid rgba(23, 32, 51, 0.08);
@@ -243,6 +465,10 @@ h1 {
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 24px 80px rgba(34, 62, 105, 0.14);
   backdrop-filter: blur(18px);
+}
+
+.deposit-card {
+  border-color: rgba(32, 180, 134, 0.18);
 }
 
 .form {
@@ -278,7 +504,7 @@ select:focus {
   box-shadow: 0 0 0 4px rgba(32, 180, 134, 0.14);
 }
 
-button {
+.primary-button {
   margin-top: 8px;
   border: 0;
   border-radius: 18px;
@@ -292,13 +518,33 @@ button {
     transform 0.2s ease;
 }
 
-button:hover:not(:disabled) {
+.primary-button:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
-button:disabled {
+.primary-button:disabled {
   cursor: not-allowed;
   opacity: 0.65;
+}
+
+.user-summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  border: 1px solid rgba(32, 180, 134, 0.18);
+  border-radius: 18px;
+  padding: 16px;
+  color: #13543f;
+  background: #edfff8;
+}
+
+.user-summary strong {
+  font-size: 1.2rem;
+}
+
+.user-summary small {
+  grid-column: 1 / -1;
+  color: #526076;
 }
 
 .message {

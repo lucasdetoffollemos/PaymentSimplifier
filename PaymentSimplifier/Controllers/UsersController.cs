@@ -14,6 +14,13 @@ namespace PaymentSimplifier.Controllers
             _userService = userService;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAsync()
+        {
+            var response = await _userService.GetUsersAsync();
+            return Ok(response);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateAsync([FromBody] CreateUserRequest request)
         {
@@ -29,11 +36,11 @@ namespace PaymentSimplifier.Controllers
         }
 
         [HttpPatch("{userId}/deposit")]
-        public async Task<IActionResult> DepositAsync(Guid userId, [FromBody] decimal amount)
+        public async Task<IActionResult> DepositAsync(Guid userId, [FromBody] DepositUserRequest request)
         {
             try
             {
-                var response = await _userService.DepositInUserAccountAsync(userId, amount);
+                var response = await _userService.DepositInUserAccountAsync(userId, request);
                 return Ok(response);
             }
             catch (Exception ex)
