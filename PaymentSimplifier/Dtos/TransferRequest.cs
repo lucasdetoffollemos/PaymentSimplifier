@@ -7,5 +7,7 @@
         public required Guid PayeeId { get; set; }
 
         public required decimal Value { get; set; }
+
+        public required string Password { get; set; }
     }
 }

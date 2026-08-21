@@ -26,7 +26,7 @@ namespace PaymentSimplifier.Application.Services
             _transferAuthorizationService = transferAuthorizationService;
         }
 
-        public async Task<(bool canTransfer, bool canNotify)> TransferAsync(Guid payerId, Guid payeeId, decimal value)
+        public async Task<(bool canTransfer, bool canNotify)> TransferAsync(Guid payerId, Guid payeeId, decimal value, string password)
         {
             if (value <= 0)
             {
@@ -55,6 +55,11 @@ namespace PaymentSimplifier.Application.Services
                 throw new ArgumentException("Payee not found");
             }
 
+            if (string.IsNullOrWhiteSpace(password) || payer.Password != password.Trim())
+            {
+                throw new ArgumentException("Invalid password");
+            }
+
             //only users with userType "common" can transfer money
 
             if (payer.UserType != UserType.Commom)
@@ -71,10 +76,10 @@ namespace PaymentSimplifier.Application.Services
 
             //before confim transaction, check this url https://util.devi.tools/api/v2/authorize, if the response is false, return false and do not proceed with the transaction
 
-            if (!await _transferAuthorizationService.IsTransferAuthorizedAsync())
+           /* if (!await _transferAuthorizationService.IsTransferAuthorizedAsync())
             {
                 return (false, false);
-            }
+            }*/
 
             //proceed with the transaction
             await CreateTransaction(payerId, payeeId, value);

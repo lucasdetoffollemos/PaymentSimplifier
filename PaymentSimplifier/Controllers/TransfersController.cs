@@ -19,7 +19,7 @@ namespace PaymentSimplifier.Controllers
         {
             try
             {
-                var (canTransfer, canNotify) = await _transferService.TransferAsync(request.PayerId, request.PayeeId, request.Value);
+                var (canTransfer, canNotify) = await _transferService.TransferAsync(request.PayerId, request.PayeeId, request.Value, request.Password);
 
 
                 if(!canTransfer)
